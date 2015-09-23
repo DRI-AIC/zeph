@@ -1,9 +1,0 @@
-setup.py
-zeph/__init__.py
-zeph/geofunctions.py
-zeph.egg-info/PKG-INFO
-zeph.egg-info/SOURCES.txt
-zeph.egg-info/dependency_links.txt
-zeph.egg-info/not-zip-safe
-zeph.egg-info/pbr.json
-zeph.egg-info/top_level.txt
