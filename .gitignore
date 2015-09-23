@@ -1,4 +1,7 @@
-## Build directories/files 
+# Byte-compiled / optimized / DLL files
+*.py[cod]
+
+# Build directories/files 
 build
 dist
 zeph.egg-info
