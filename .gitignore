@@ -1,4 +1,4 @@
-## Build files
-./build/*
-./dist/*
-./zeph.egg-info/*
+## Build directories/files
+build
+dist
+zeph.egg-info
