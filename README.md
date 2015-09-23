@@ -1,2 +1,3 @@
-# garray
-Geographic arrays in Python.
+# zeph
+geographic arrays in python
+
