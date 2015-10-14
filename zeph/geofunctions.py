@@ -1,10 +1,3 @@
-#--------------------------------
-# Name:         gdal_common.py
-# Purpose:      Common GDAL Support Functions
-# Author:       Charles Morton & Andrew Vitale
-# Created       2015-07-20
-# Python:       2.7
-#--------------------------------
 from __future__ import absolute_import, division, print_function
 import copy
 import csv
@@ -18,12 +11,13 @@ import random
 import re
 import warnings
 
+import fiona
 import numpy as np
 from osgeo import gdal, ogr, osr
+import ujson
 
 import python_common
 
-################################################################################
 
 class extent:
     """Bounding Geographic Extent"""
@@ -2885,3 +2879,49 @@ def random_sample(array, sample_size, array_space=True,
 ##            empty_band.SetNoDataValue(empty_nodata)
 ##        empty_raster_ds = None
 
+def subset_geojson(geojson_filepath, output_extent_list, output_filepath=None):
+    """
+    Subset a GeoJSON point file to a geographic extent.
+
+    Set up the output extent from the input list of coords, read in the
+    and the polygon extent using fiona, calculate the overlapping extents
+    using zeph.geofunctions, filter using fiona, and dump the JSONs as 
+    a temporary file
+
+    Args:
+        geojson_filepath (str): Filepath to a GeoJSON that is to be subset
+        output_extent_list (list): List of extent values
+            e.g. [xmin, ymin, xmax, ymax]
+
+    Returns:
+        bool: True on success
+
+    """
+    output_extent = extent(output_extent_list)
+    fiona_polygon = fiona.open(geojson_filepath, 'r')
+    input_extent = extent(map(float, fiona_polygon.bounds))
+
+    if extents_overlap(input_extent, output_extent):
+        common_extent = intersect_extents([input_extent, output_extent])
+        clipped = fiona_polygon.filter(bbox=tuple(common_extent))
+
+        features_list = [feature for feature in clipped]
+        output_layer = {
+            'type': 'FeatureCollection',
+            'features': features_list,
+            'crs': {
+                'properties': {"name": "urn:ogc:def:crs:OGC:1.3:CRS84"},
+            }
+        }
+        if output_filepath is None:
+            return ujson.dumps(output_layer)
+        else:
+            with open(output_filepath, 'w') as geojson_file:
+                geojson_file.write(ujson.dumps(output_layer))
+            return True
+    else:
+        print(
+            'The extents do not overlap. Are the extents in the same ' +
+            'projection or coordinate system?.')
+        raise IOError(
+            'Could not generate the output JSON. The extents do not overlap.')
