@@ -16,8 +16,6 @@ import numpy as np
 from osgeo import gdal, ogr, osr
 import ujson
 
-import python_common
-
 
 class extent:
     """Bounding Geographic Extent"""
@@ -2925,3 +2923,21 @@ def subset_geojson(geojson_filepath, output_extent_list, output_filepath=None):
             'projection or coordinate system?.')
         raise IOError(
             'Could not generate the output JSON. The extents do not overlap.')
+
+def remove_file(file_path):
+    """Remove a feature/raster and all of its anciallary files
+
+    This function was grabbed from python_common, as it's the only function
+    from that module that is called within geofunctions.
+
+    Args:
+        filepath (str): Filepath of the raster or shapfile to remove
+
+    Returns:
+        bool: True on success
+
+    """
+    file_ws = os.path.dirname(file_path)
+    for file_name in glob.glob(os.path.splitext(file_path)[0]+".*"):
+        os.remove(os.path.join(file_ws, file_name))
+    return True
