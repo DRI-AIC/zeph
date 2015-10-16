@@ -2908,7 +2908,7 @@ def subset_geojson(geojson_filepath, output_extent_list, output_filepath=None):
             'type': 'FeatureCollection',
             'features': features_list,
             'crs': {
-                'properties': {"name": "urn:ogc:def:crs:OGC:1.3:CRS84"},
+                'properties': fiona_polygon.crs,
             }
         }
         if output_filepath is None:
