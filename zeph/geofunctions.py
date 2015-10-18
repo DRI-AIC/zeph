@@ -2907,8 +2907,8 @@ def subset_geojson(geojson_filepath, output_extent_list, output_filepath=None):
     if extents_overlap(input_extent, output_extent):
         common_extent = intersect_extents([input_extent, output_extent])
         clipped = fiona_shape.filter(bbox=tuple(common_extent))
-
         features_list = [feature for feature in clipped]
+        
         output_layer = {
             'type': 'FeatureCollection',
             'features': features_list,
@@ -2916,6 +2916,7 @@ def subset_geojson(geojson_filepath, output_extent_list, output_filepath=None):
                 'properties': fiona_shape.crs,
             }
         }
+
         if output_filepath is None:
             return ujson.dumps(output_layer)
         else:
