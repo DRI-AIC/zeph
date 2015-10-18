@@ -2890,9 +2890,14 @@ def subset_geojson(geojson_filepath, output_extent_list, output_filepath=None):
         geojson_filepath (str): Filepath to a GeoJSON that is to be subset
         output_extent_list (list): List of extent values
             e.g. [xmin, ymin, xmax, ymax]
+        output_filepath (str): If None (default), the output is a string
+            of a GeoJSON. If output_filepath is set, the subset GeoJSON is
+            saved to disk at that location.
 
     Returns:
-        bool: True on success
+        str: String of the subset GeoJSON if output_filepath is None.
+        bool: True on success when writing the subset GeoJSON to
+            output_filepath.
 
     """
     output_extent = extent(output_extent_list)
