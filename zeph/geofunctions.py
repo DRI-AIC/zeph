@@ -2901,19 +2901,19 @@ def subset_geojson(geojson_filepath, output_extent_list, output_filepath=None):
 
     """
     output_extent = extent(output_extent_list)
-    fiona_polygon = fiona.open(geojson_filepath, 'r')
-    input_extent = extent(map(float, fiona_polygon.bounds))
+    fiona_shape = fiona.open(geojson_filepath, 'r')
+    input_extent = extent(map(float, fiona_shape.bounds))
 
     if extents_overlap(input_extent, output_extent):
         common_extent = intersect_extents([input_extent, output_extent])
-        clipped = fiona_polygon.filter(bbox=tuple(common_extent))
+        clipped = fiona_shape.filter(bbox=tuple(common_extent))
 
         features_list = [feature for feature in clipped]
         output_layer = {
             'type': 'FeatureCollection',
             'features': features_list,
             'crs': {
-                'properties': fiona_polygon.crs,
+                'properties': fiona_shape.crs,
             }
         }
         if output_filepath is None:
