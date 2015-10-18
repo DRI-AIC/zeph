@@ -1,6 +1,7 @@
 # Byte-compiled / optimized / DLL files
 ./zeph/*.py[cod]
 *.py[cod]
+*.pyc
 
 # Build directories/files 
 build
