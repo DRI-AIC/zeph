@@ -2910,7 +2910,7 @@ def subset_geojson(geojson_filepath, output_extent_list, output_filepath=None):
         common_extent = intersect_extents([input_extent, output_extent])
         clipped = fiona_polygon.filter(bbox=tuple(common_extent))
         features = [feature for feature in clipped]
-        
+
         output_layer = {
             'type': 'FeatureCollection',
             'features': features,
@@ -2978,7 +2978,7 @@ def geojson_write_xy(geojson_filepath, x, y, pixel_type,
         id_ = 0
     source_crs = fiona.crs.from_epsg(epsg)
     if overwrite_flag and os.path.isfile(geojson_filepath):
-        print('Removing {}'.format(geojson_filepath))
+        logging.info('Removing {}'.format(geojson_filepath))
         remove_file(geojson_filepath)
 
         source_driver = u'GeoJSON'
