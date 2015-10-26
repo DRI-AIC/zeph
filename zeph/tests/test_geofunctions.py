@@ -12,7 +12,7 @@ class GeojsonTestCase(unittest.TestCase):
     def setUp(self):
         self.geojson_filepath = os.path.join(
             os.getcwd(), 'zeph', 'tests', 'test_files', 'test.geojson')
-        self.extent = zf.extent((-115.5, 35.264, -115., 37.))
+        self.extent = zf.extent([-115.472, 36.207, -115.449, 36.2251])
         self.fiona_polygon = fiona.open(self.geojson_filepath, 'r')
         self.test_string_filepath = os.path.join(
             os.getcwd(), 'zeph', 'tests', 'test_files', 'test_geojson.txt')
