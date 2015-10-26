@@ -1,4 +1,5 @@
-from __future__ import absolute_import, division, print_function
+from __future__ import absolute_import, division, print_function, unicode_literals
+from collections import OrderedDict
 import copy
 import csv
 import datetime as dt
@@ -12,6 +13,7 @@ import re
 import warnings
 
 import fiona
+import fiona.crs
 import numpy as np
 from osgeo import gdal, ogr, osr
 import ujson
@@ -2903,10 +2905,10 @@ def subset_geojson(geojson_filepath, output_extent_list, output_filepath=None):
         common_extent = intersect_extents([input_extent, output_extent])
         clipped = fiona_polygon.filter(bbox=tuple(common_extent))
 
-        features_list = [feature for feature in clipped]
+        features = [feature for feature in clipped]
         output_layer = {
             'type': 'FeatureCollection',
-            'features': features_list,
+            'features': features,
             'crs': {
                 'properties': fiona_polygon.crs,
             }
@@ -2941,3 +2943,71 @@ def remove_file(file_path):
     for file_name in glob.glob(os.path.splitext(file_path)[0]+".*"):
         os.remove(os.path.join(file_ws, file_name))
     return True
+
+def geojson_write_xy(geojson_filepath, x, y, pixel_type,
+                     id_=None, epsg=32614, overwrite_flag=False):
+    """Write x/y coordinates to a GeoJSON as a new file or appended
+
+    This function will either create a new GeoJSON file or append an extant
+    file with the input x and y coordinates. It is designed with the intention
+    of storing calibration pixels in one file.
+
+    Args:
+        geojson_filepath (str): Filepath of the input/output GeoJSON file
+        x (int, float, str): X coordinate in the proper coordinate system
+        y (int, float, str): Y coorindate in the proper coordinate system
+        pixel_type (str): Typicall HOT or COLD. The value to be written as
+            an attribute describing the pixel.
+        id_ (str, int): The id value akin to the PID in an ArcGIS attribute
+            table
+        epsg (int): Supported EPSG code for the output file to describe
+            its coordinate system http://spatialreference.org/ref/epsg
+        overwrite_flag (bool): If true, force overwrite of extant files
+
+    Returns:
+        bool: True on success
+
+    """
+    if id_ is None and not os.path.isfile(geojson_filepath):
+        id_ = 0
+    source_crs = fiona.crs.from_epsg(epsg)
+    if overwrite_flag and os.path.isfile(geojson_filepath):
+        print('Removing {}'.format(geojson_filepath))
+        remove_file(geojson_filepath)
+
+        source_driver = u'GeoJSON'
+        source_schema = {'geometry': 'Point',
+                         'properties': OrderedDict(
+                            [(u'id', 'int'), (u'PIXEL', 'str')])}
+        record = {
+            'geometry': {'type': 'Point',
+                         'coordinates': (x, y)},
+            'type': 'Feature',
+            'id': '0',
+            'properties': OrderedDict([(u'id', id_), (u'PIXEL', pixel_type)])}
+        with (fiona.open(geojson_filepath, 'w',
+            driver=source_driver, crs=source_crs, schema=source_schema)) as geo:
+            geo.write(record)
+        return True
+    else:
+        fiona_points = fiona.open(geojson_filepath)
+        coordinates, properties, features = [], [], []
+        for feature in fiona_points:
+            features.append(feature)
+        features.append(
+            {'geometry': {'coordinates': (x, y), 'type': 'Point'},
+             'id': str(id_),
+             'properties': OrderedDict([('id', id_), ('PIXEL', pixel_type)]),
+             'type': 'Feature'})
+
+        output_layer = {
+            'type': 'FeatureCollection',
+            'features': features,
+            'crs': {
+                'properties': fiona_points.crs,
+            }
+        }
+        with open(geojson_filepath, 'w') as geojson_file:
+            geojson_file.write(ujson.dumps(output_layer))
+        return True
+        
