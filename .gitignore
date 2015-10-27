@@ -7,3 +7,8 @@
 build
 dist
 zeph.egg-info
+
+# Docs
+zeph/.buildinfo
+zeph/.doctrees/
+
