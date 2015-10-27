@@ -2971,7 +2971,12 @@ def geojson_write_xy(geojson_filepath, x, y, pixel_type,
         id_ (str, int): The id value akin to the PID in an ArcGIS attribute
             table
         epsg (int): Supported EPSG code for the output file to describe
-            its coordinate system http://spatialreference.org/ref/epsg
+            its coordinate system http://spatialreference.org/ref/epsg/
+        input_proj (str): WKT projection like those provided from the GDAL
+            raster bindings. If an EPSG code cannot be determined using OSR,
+            a WGS84 UTM code will be scanned from the input_proj if possible.
+            input_proj should not be used as the primary means of determining
+            the output projection, but rather should be used as a last resort
         overwrite_flag (bool): If true, force overwrite of extant files
 
     Returns:
@@ -2994,16 +2999,17 @@ def geojson_write_xy(geojson_filepath, x, y, pixel_type,
         if utm_re.search(input_proj):
             epsg = int(32600 + int(utm_re.search(input_proj).group('zone')))
     if not epsg and not input_proj:
-          logging.error(
+        logging.error(
             ('ERROR: Must provide either an EPSG code or an input_proj. ' +
              'Currently EPSG={0} and input_proj={1}'.format(epsg, input_proj)))
         return False      
-
     source_crs = fiona.crs.from_epsg(epsg)
-    if overwrite_flag and os.path.isfile(geojson_filepath):
+    # Overwrite flag handling
+    if os.path.isfile(geojson_filepath) and overwrite_flag:
         logging.info('Removing {}'.format(geojson_filepath))
         remove_file(geojson_filepath)
 
+    if not os.path.isfile(geojson_filepath):
         source_driver = u'GeoJSON'
         source_schema = {'geometry': 'Point',
                          'properties': OrderedDict(
