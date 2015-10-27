@@ -17,6 +17,9 @@ import fiona.crs
 import numpy as np
 from osgeo import gdal, ogr, osr
 import ujson
+ogr.UseExceptions()
+gdal.UseExceptions()
+osr.UseExceptions()
 
 
 class extent:
@@ -2951,7 +2954,8 @@ def remove_file(file_path):
     return True
 
 def geojson_write_xy(geojson_filepath, x, y, pixel_type,
-                     id_=None, epsg=32614, overwrite_flag=False):
+                     id_=None, epsg=None, input_proj=None,
+                     overwrite_flag=False):
     """Write x/y coordinates to a GeoJSON as a new file or appended
 
     This function will either create a new GeoJSON file or append an extant
@@ -2974,8 +2978,27 @@ def geojson_write_xy(geojson_filepath, x, y, pixel_type,
         bool: True on success
 
     """
+    if epsg is None and input_proj is None:
+        logging.error(
+            ('ERROR: Must provide either an EPSG code or an input_proj. ' +
+             'Currently EPSG={0} and input_proj={1}'.format(epsg, input_proj)))
+        return False
     if id_ is None and not os.path.isfile(geojson_filepath):
         id_ = 0
+    if input_proj:
+        spatial_ref = osr.SpatialReference()
+        spatial_ref.ImportFromWkt(input_proj)
+        epsg = spatial_ref.GetAuthorityCode(None)
+    if not epsg:
+        utm_re = re.compile('\w_UTM_Zone_(?P<zone>\d{2})')
+        if utm_re.search(input_proj):
+            epsg = int(32600 + int(utm_re.search(input_proj).group('zone')))
+    if not epsg and not input_proj:
+          logging.error(
+            ('ERROR: Must provide either an EPSG code or an input_proj. ' +
+             'Currently EPSG={0} and input_proj={1}'.format(epsg, input_proj)))
+        return False      
+
     source_crs = fiona.crs.from_epsg(epsg)
     if overwrite_flag and os.path.isfile(geojson_filepath):
         logging.info('Removing {}'.format(geojson_filepath))
