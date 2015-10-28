@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='zeph',
-      version='0.0.8',
+      version='0.0.9',
       description='Geographic arrays in Python',
       url='https://github.com/vitale232/zeph',
       author='Charles Morton and Andrew Vitale',
