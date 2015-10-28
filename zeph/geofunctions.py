@@ -3095,6 +3095,7 @@ def multipoint_shapefile(output_filepath, x, y, pixel_type, id_=None,
         'type': 'Feature',
         'id': '0',
         'properties': OrderedDict([(u'id', id_), (u'PIXEL', pixel_type)])}
+
     if not os.path.isfile(output_filepath):
         source_driver = u'ESRI Shapefile'
         source_schema = {'geometry': 'Point',
@@ -3104,10 +3105,10 @@ def multipoint_shapefile(output_filepath, x, y, pixel_type, id_=None,
         with (fiona.open(output_filepath, 'w',
             driver=source_driver, crs=source_crs, schema=source_schema)) as geo:
             geo.write(record)
+        return True
 
     # Append shapefile
     if os.path.isfile(output_filepath):
         with fiona.open(output_filepath, 'a') as geo:
             geo.write(record)
-
-    return True
+        return True
