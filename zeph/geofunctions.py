@@ -3084,7 +3084,7 @@ def multipoint_shapefile(output_filepath, x, y, pixel_type, id_=None,
             ('ERROR: Must provide either an EPSG code or an input_proj. ' +
              'Currently EPSG={0} and input_proj={1}'.format(epsg, input_proj)))
         return False
-    if id_ is None and not os.path.isfile(geojson_filepath):
+    if id_ is None and not os.path.isfile(output_filepath):
         id_ = 0
 
     # Create shapefile from scratch
