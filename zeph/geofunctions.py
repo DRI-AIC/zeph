@@ -1,4 +1,4 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
+from __future__ import absolute_import, division, print_function
 from collections import OrderedDict
 import copy
 import csv
@@ -3004,31 +3004,49 @@ def geojson_write_xy(geojson_filepath, x, y, pixel_type,
              'Currently EPSG={0} and input_proj={1}'.format(epsg, input_proj)))
         return False      
     source_crs = fiona.crs.from_epsg(epsg)
+    print(source_crs)
     # Overwrite flag handling
     if os.path.isfile(geojson_filepath) and overwrite_flag:
         logging.info('Removing {}'.format(geojson_filepath))
         remove_file(geojson_filepath)
 
     if not os.path.isfile(geojson_filepath):
-        source_driver = u'GeoJSON'
-        source_schema = {'geometry': 'Point',
-                         'properties': OrderedDict(
-                            [(u'id', 'int'), (u'PIXEL', 'str')])}
-        record = {
-            'geometry': {'type': 'Point',
-                         'coordinates': (x, y)},
-            'type': 'Feature',
-            'id': '0',
-            'properties': OrderedDict([(u'id', id_), (u'PIXEL', pixel_type)])}
-        with (fiona.open(geojson_filepath, 'w',
-            driver=source_driver, crs=source_crs, schema=source_schema)) as geo:
-            geo.write(record)
+        features = {'geometry': {'coordinates': (x, y), 'type': 'Point'},
+             'id': str(id_),
+             'properties': OrderedDict([('id', id_), ('PIXEL', pixel_type)]),
+             'type': 'Feature'}
+        output_layer = {
+            'type': 'FeatureCollection',
+            'features': [features],
+            'crs': {
+                'properties': {'init':'EPSG:{}'.format(epsg)},
+            }
+        }
+        print(output_layer)
+        print(ujson.dumps(output_layer))
+        # print(ujson.dump(output_layer))
+        with open(geojson_filepath, 'w') as geojson_file:
+            geojson_file.write(ujson.dumps(output_layer))
+        # source_driver = u'GeoJSON'
+        # source_schema = {'geometry': 'Point',
+        #                  'properties': OrderedDict(
+        #                     [(u'id', 'int'), (u'PIXEL', 'str')])}
+        # record = {
+        #     'geometry': {'type': 'Point',
+        #                  'coordinates': (x, y)},
+        #     'type': 'Feature',
+        #     'id': '0',
+        #     'properties': OrderedDict([(u'id', id_), (u'PIXEL', pixel_type)])}
+        # with (fiona.open(geojson_filepath, 'w',
+        #     driver=source_driver, crs=source_crs, schema=source_schema)) as geo:
+        #     geo.write(record)
         return True
     else:
         fiona_points = fiona.open(geojson_filepath)
-        coordinates, properties, features = [], [], []
-        for feature in fiona_points:
-            features.append(feature)
+        features = [feature for feature in fiona_points]
+        # features = []
+        # for feature in fiona_points:
+        #     features.append(feature)
         features.append(
             {'geometry': {'coordinates': (x, y), 'type': 'Point'},
              'id': str(id_),
@@ -3046,3 +3064,50 @@ def geojson_write_xy(geojson_filepath, x, y, pixel_type,
             geojson_file.write(ujson.dumps(output_layer))
         return True
         
+def multipoint_shapefile(output_filepath, x, y, pixel_type, id_=None,
+                         epsg=None, input_proj=None, overwrite_flag=False):
+    if epsg is None and input_proj is None:
+        logging.error(
+            ('ERROR: Must provide either an EPSG code or an input_proj. ' +
+             'Currently EPSG={0} and input_proj={1}'.format(epsg, input_proj)))
+        return False
+    if input_proj:
+        spatial_ref = osr.SpatialReference()
+        spatial_ref.ImportFromWkt(input_proj)
+        epsg = spatial_ref.GetAuthorityCode(None)
+    if not epsg:
+        utm_re = re.compile('\w_UTM_Zone_(?P<zone>\d{2})')
+        if utm_re.search(input_proj):
+            epsg = int(32600 + int(utm_re.search(input_proj).group('zone')))
+    if not epsg and not input_proj:
+        logging.error(
+            ('ERROR: Must provide either an EPSG code or an input_proj. ' +
+             'Currently EPSG={0} and input_proj={1}'.format(epsg, input_proj)))
+        return False
+    if id_ is None and not os.path.isfile(geojson_filepath):
+        id_ = 0
+
+    # Create shapefile from scratch
+    source_crs = fiona.crs.from_epsg(epsg)
+    record = {
+        'geometry': {'type': 'Point',
+                     'coordinates': (x, y)},
+        'type': 'Feature',
+        'id': '0',
+        'properties': OrderedDict([(u'id', id_), (u'PIXEL', pixel_type)])}
+    if not os.path.isfile(output_filepath):
+        source_driver = u'ESRI Shapefile'
+        source_schema = {'geometry': 'Point',
+                         'properties': OrderedDict(
+                            [(u'id', 'int'), (u'PIXEL', 'str')])}
+
+        with (fiona.open(output_filepath, 'w',
+            driver=source_driver, crs=source_crs, schema=source_schema)) as geo:
+            geo.write(record)
+
+    # Append shapefile
+    if os.path.isfile(output_filepath):
+        with fiona.open(output_filepath, 'a') as geo:
+            geo.write(record)
+
+    return True
