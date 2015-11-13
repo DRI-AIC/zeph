@@ -265,8 +265,12 @@ def raster_ds_env(raster_ds, mask_array=True):
     environment.snap_x, environment.snap_y = 0, 0
     return environment
 
-
-
+def raster_path_nodata(raster_path, band=1):
+    raster_ds = raster_path_ds(raster_path, read_only=True)
+    return raster_ds_nodata(raster_ds, band)
+def raster_ds_nodata(raster_ds, band=1):
+    raster_band = raster_ds.GetRasterBand(band)
+    return raster_band.GetNoDataValue()
 def raster_driver(raster_path):
     """Get the GDAL driver from a raster path
 
@@ -2718,7 +2722,7 @@ def build_empty_raster(output_raster, band_cnt=1, output_dtype=None,
     if output_extent is None and env.mask_extent:
         output_extent = env.mask_extent
     output_driver = raster_driver(output_raster)
-    python_common.remove_file(output_raster)
+    remove_file(output_raster)
     ##output_driver.Delete(output_raster) 
     output_rows, output_cols = output_extent.shape(output_cs)
     if output_raster.upper().endswith('IMG'):
