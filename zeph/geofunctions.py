@@ -23,7 +23,7 @@ gdal.UseExceptions()
 osr.UseExceptions()
 
 
-class extent:
+class Extent:
     """Bounding Geographic Extent"""
     ##def __repr__(self):
     ##    return '<Extent xmin:{0} ymin:{1} xmax:{2} ymax:{3}>'.format(
@@ -75,36 +75,36 @@ class extent:
         return self.xmin, self.ymin, self.xmax, self.ymax
     def copy(self):
         """Return a copy of the extent"""
-        return extent((self.xmin, self.ymin, self.xmax, self.ymax))
+        return Extent((self.xmin, self.ymin, self.xmax, self.ymax))
     def corner_points(self):
         """Corner points in clockwise order starting with upper-left point"""
         return [(self.xmin, self.ymax), (self.xmax, self.ymax),
                 (self.xmax, self.ymin), (self.xmin, self.ymin)]
     def ul_lr_swap(self):
-        """Copy of extent object reordered as xmin, ymax, xmax, ymin
+        """Copy of Extent object reordered as xmin, ymax, xmax, ymin
 
-        Some gdal utilities want the extent described using upper-left and
+        Some gdal utilities want the Extent described using upper-left and
         lower-right points.
             gdal_translate -projwin ulx uly lrx lry
             gdal_merge -ul_lr ulx uly lrx lry
 
         """
-        return extent((self.xmin, self.ymax, self.xmax, self.ymin))
+        return Extent((self.xmin, self.ymax, self.xmax, self.ymin))
     def ogrenv_swap(self):
-        """Copy of extent object reordered as xmin, xmax, ymin, ymax
+        """Copy of Extent object reordered as xmin, xmax, ymin, ymax
 
-        OGR feature (shapefile) extents are different than GDAL raster extents
+        OGR feature (shapefile) Extents are different than GDAL raster Extents
         """
-        return extent((self.xmin, self.xmax, self.ymin, self.ymax))
+        return Extent((self.xmin, self.xmax, self.ymin, self.ymax))
     def origin(self):
-        """Origin (upper-left corner) of the extent"""
+        """Origin (upper-left corner) of the Extent"""
         return (self.xmin, self.ymax)
     def center(self):
-        """Centroid of the extent"""
+        """Centroid of the Extent"""
         return ((self.xmin + 0.5 * (self.xmax - self.xmin)),
                 (self.ymin + 0.5 * (self.ymax - self.ymin)))
     def shape(self, cs=None):
-        """Return number of rows and columns of the extent
+        """Return number of rows and columns of the Extent
         Args:
             cs: cellsize (default to env.cellsize if not set)
         Returns:
@@ -116,7 +116,7 @@ class extent:
         rows = int(round(abs((self.ymax - self.ymin) / -cs), 0))
         return rows, cols
     def geo(self, cs=None):
-        """Geo-tranform of the extent"""
+        """Geo-tranform of the Extent"""
         if cs is None:
             if env.cellsize:
                 cs = env.cellsize
@@ -124,7 +124,7 @@ class extent:
                 raise SystemExit('Cellsize was not set')
         return (self.xmin, abs(cs), 0., self.ymax, 0., -abs(cs))
     def geometry(self):
-        """GDAL geometry object of the extent"""
+        """GDAL geometry object of the Extent"""
         ring = ogr.Geometry(ogr.wkbLinearRing)
         for point in self.corner_points():
             ring.AddPoint(point[0], point[1])
@@ -133,7 +133,7 @@ class extent:
         polygon.AddGeometry(ring)
         return polygon
     ##def square(self, method='EXPAND', cs=None):
-    ##    """Compute a square extent
+    ##    """Compute a square Extent
     ##
     ##    This could probably be done in one step by looking at the sign
     ##    of the difference
@@ -179,7 +179,7 @@ class extent:
     ##            self.ymin = self.ymin + (0.25 * diff)
     ##            self.xmax = self.xmax + (0.25 * diff)
     ##            self.ymax = self.ymax - (0.25 * diff)
-   
+
 class env:
     """"Generic enviornment parameters used in gdal_common"""
     snap_proj, snap_osr, snap_geo = None, None, None
@@ -187,10 +187,10 @@ class env:
     ##snap_extent = extent((0,0,1,1))
     cellsize, snap_x, snap_y = None, None, None
     mask_geo, mask_path, mask_array = None, None, None
-    mask_extent = extent((0,0,1,1))
-    mask_gcs_extent = extent((0,0,1,1))
+    mask_extent = Extent((0,0,1,1))
+    mask_gcs_extent = Extent((0,0,1,1))
     mask_rows, mask_cols = 0, 0
-    
+
 ##    def set_snap_raster(self, snap_raster):
 ##        if not os.path.isfile(snap_raster):
 ##            logging.error(
@@ -219,7 +219,7 @@ def raster_path_ds(raster_path, read_only=True):
             gdal read only code
 
     Return:
-        :class:`gdal.Dataset`: 
+        :class:`gdal.Dataset`:
 
     """
     if read_only:
@@ -241,7 +241,7 @@ def raster_path_env(raster_path, mask_array=True):
     input_ds = gdal.Open(raster_path, 0)
     return raster_ds_env(input_ds, mask_array)
 def raster_ds_env(raster_ds, mask_array=True):
-    """Create :class:`gdal_common.env` from a :class:`gdal.Dataset`.    
+    """Create :class:`gdal_common.env` from a :class:`gdal.Dataset`.
 
     Args:
         raster_ds (:class:`gdal.Dataset`): an opened :class:`gdal.Dataset`
@@ -281,7 +281,7 @@ def raster_driver(raster_path):
     Args:
         raster_path (str): filepath to a raster
 
-        
+
     Returns:
         GDAL driver: GDAL raster driver
 
@@ -289,6 +289,8 @@ def raster_driver(raster_path):
     if raster_path.upper().endswith('IMG'):
         return gdal.GetDriverByName('HFA')
     elif raster_path.upper().endswith('TIF'):
+        return gdal.GetDriverByName('GTiff')
+    elif raster_path.upper().endswith('TIFF'):
         return gdal.GetDriverByName('GTiff')
     elif raster_path.upper().endswith('HDF'):
         return gdal.GetDriverByName('HDF4')
@@ -308,11 +310,11 @@ def numpy_to_gdal_type(numpy_type):
 
     Args:
         numpy_type (:class:`np.dtype`): numpy array type (i.e. np.bool, np.float32, etc)
-    
+
     Returns:
         g_type: GDAL `datatype <http://www.gdal.org/gdal_8h.html#a22e22ce0a55036a96f652765793fb7a4/>`
         _equivalent to the input NumPy :class:`np.dtype`
-        g_nodata: Nodata value for GDAL which defaults to the 
+        g_nodata: Nodata value for GDAL which defaults to the
         minimum value for the number type
 
     """
@@ -399,16 +401,16 @@ def gdal_to_numpy_type(gdal_type):
     ##    numpy_type = np.complex64
     return numpy_type
 
-def polygon_to_raster_ds(feature_path, nodata_value=0, burn_value=1, 
+def polygon_to_raster_ds(feature_path, nodata_value=0, burn_value=1,
                          output_osr=None, output_cs=None, output_extent=None):
     """Convert a raster dataset based on a feature file path
 
     Args:
         feature_path (str): Filepath to the vector data
         nodata_value (int, float): No data value of the output raster
-        burn_value (int, float): Value to be assigned to the raster where 
+        burn_value (int, float): Value to be assigned to the raster where
             the polygon is present
-        output_osr (osr.SpatialReference): Desired spatial reference of 
+        output_osr (osr.SpatialReference): Desired spatial reference of
             the output as an OSR object. If None, checks for a :class:`gdc.env` value
         output_cs (int): Desired cell size of the output raster. If None,
             checks for a :class:`gdc.env` value
@@ -420,7 +422,7 @@ def polygon_to_raster_ds(feature_path, nodata_value=0, burn_value=1,
     """
     feature_ds = ogr.Open(feature_path)
     feature_lyr = feature_ds.GetLayer()
-    ## Check that projection matches snap_raster                           
+    ## Check that projection matches snap_raster
     if output_osr is None and env.snap_osr:
         output_osr = env.snap_osr
     if output_cs is None and env.cellsize:
@@ -438,7 +440,7 @@ def polygon_to_raster_ds(feature_path, nodata_value=0, burn_value=1,
     ##            'not match the snap raster projection'))
     ##    raise SystemExit()
     raster_rows, raster_cols = raster_extent.shape(output_cs)
-    mem_driver = gdal.GetDriverByName('MEM') 
+    mem_driver = gdal.GetDriverByName('MEM')
     raster_ds = mem_driver.Create(
         '', raster_cols, raster_rows, 1, gdal.GDT_Byte)
     raster_ds.SetProjection(output_osr.ExportToWkt())
@@ -458,7 +460,7 @@ def raster_to_polygon(raster_path, polygon_path, layer_name='OUTPUT_POLY'):
         raster_path (str): Filepath to the input raster that's to be converted
         polygon_path (str): Filepath of the desired output polygon
         layer_name (str): Layer name assigned to the polygon
-        
+
     Returns:
         None. Operates on disk.
 
@@ -470,7 +472,7 @@ def raster_ds_to_polygon(raster_ds, polygon_path, layer_name='OUTPUT_POLY'):
     """Create a polygon file from a GDAL raster dataset
 
     Args:
-        raster_ds (:class:`gdal.Dataset`): The GDAL raster dataset that is 
+        raster_ds (:class:`gdal.Dataset`): The GDAL raster dataset that is
             to be converted to a polygon
         polygon_path (str): The filepath of the output polygon file
         layer_name (str): The layer name assigned to the polygon
@@ -484,7 +486,7 @@ def raster_ds_to_polygon(raster_ds, polygon_path, layer_name='OUTPUT_POLY'):
         shp_driver.DeleteDataSource(polygon_path)
     polygon_ds = shp_driver.CreateDataSource(polygon_path)
     polygon_lyr = polygon_ds.CreateLayer(layer_name, geom_type=ogr.wkbPolygon)
-    field_defn = ogr.FieldDefn('VALUE', ogr.OFTInteger)    
+    field_defn = ogr.FieldDefn('VALUE', ogr.OFTInteger)
     polygon_lyr.CreateField(field_defn)
     ## Convert raster to polygon
     raster_band = raster_ds.GetRasterBand(1)
@@ -493,7 +495,7 @@ def raster_ds_to_polygon(raster_ds, polygon_path, layer_name='OUTPUT_POLY'):
     ## Format spatial reference for prj file
     polygon_osr = proj_osr(env.snap_proj)
     polygon_osr.MorphToESRI()
-    polygon_proj = polygon_osr.ExportToWkt()    
+    polygon_proj = polygon_osr.ExportToWkt()
     ## Write projection/spatial reference
     prj_file = open(polygon_path.replace('.shp','.prj'), 'w')
     prj_file.write(polygon_proj)
@@ -503,10 +505,10 @@ def polygon_buffer(input_path, output_path, buffer_distance):
     """Buffers a polygon feature by the specified amount and writes
     the output polygon to disk
 
-    Args: 
+    Args:
         input_path (str): Filepath of the input polygons that are to be buffered
         output_path (str): Filepath of the output polyons with the buffer applied
-        buffer_distance (int, float): Desired distance of buffering in the 
+        buffer_distance (int, float): Desired distance of buffering in the
             unit of the projection
 
     Returns:
@@ -520,7 +522,7 @@ def polygon_buffer(input_path, output_path, buffer_distance):
     del input_ds, output_ds
     output_ds = shp_driver.Open(output_path, 1)
     output_layer = output_ds.GetLayer()
-    output_ftr = output_layer.GetNextFeature() 
+    output_ftr = output_layer.GetNextFeature()
     while output_ftr:
         output_fid = output_ftr.GetFID()
         ##logging.info('    {0}'.format(output_fid))
@@ -549,7 +551,7 @@ def polygon_buffer(input_path, output_path, buffer_distance):
         output_ftr = output_layer.GetNextFeature()
     ## DEADBEEF - Uncomment to remove small buffered polygons
     output_ds.ExecuteSQL(
-        "REPACK {0}".format(output_layer.GetName())) 
+        "REPACK {0}".format(output_layer.GetName()))
     output_ftr = None
     output_ds = None
     del output_ds, output_layer, output_ftr
@@ -579,7 +581,7 @@ def osr_proj(input_osr):
     """Return the projection WKT of a spatial reference object
 
     Args:
-        input_osr (:class:`osr.SpatialReference`): the input OSR 
+        input_osr (:class:`osr.SpatialReference`): the input OSR
             spatial reference
 
     Returns:
@@ -591,7 +593,7 @@ def proj_osr(input_proj):
     """Return the spatial reference object of a projection WKT
 
     Args:
-        input_proj (:class:`osr.SpatialReference` WKT): Input 
+        input_proj (:class:`osr.SpatialReference` WKT): Input
             WKT formatted :class:`osr.SpatialReference` object
             to be used in creation of an :class:`osr.SpatialReference`
 
@@ -686,16 +688,16 @@ def raster_proj_osr(raster_proj):
 
     Args:
         raster_proj ():
-        
+
     Returns:
-        
+
     """
     warnings.warn(
         ('Function raster_proj_osr() is deprecated. ' +
          'Use gdal_common.proj_osr() instead.'))
     raster_osr = osr.SpatialReference()
     raster_osr.ImportFromWkt(raster_proj)
-    return raster_osr  
+    return raster_osr
 
 def feature_path_osr(feature_path):
     """Return the spatial reference of a feature path
@@ -704,7 +706,7 @@ def feature_path_osr(feature_path):
         feature_path (str): file path to the OGR supported feature
 
     Returns:
-        osr.SpatialReference: :class:`osr.SpatialReference` of the 
+        osr.SpatialReference: :class:`osr.SpatialReference` of the
             input feature file path
 
     """
@@ -775,7 +777,7 @@ def raster_osr_proj(raster_osr):
     return raster_osr.ExportToWkt()
 
 def path_extent(file_path):
-    """Get the extent from a generic file path
+    """Get the Extent from a generic file path
 
     Supports shapefiles, ERDAS Imagine formatted rasters,
     and GeoTiffs
@@ -784,7 +786,7 @@ def path_extent(file_path):
         file_path (str): String of the input file path
 
     Returns:
-        gdal_common.extent: :class:`gdal_common.extent` of the 
+        gdal_common.Extent: :class:`gdal_common.Extent` of the
             input raster or feature set
 
     """
@@ -810,7 +812,7 @@ def feature_path_extent(feature_path):
     feature_ds = ogr.Open(feature_path, 0)
     feature_extent = feature_ds_extent(feature_ds)
     feature_ds = None
-    return feature_extent    
+    return feature_extent
 def feature_ds_extent(feature_ds):
     """"Return the bounding extent of an opened feature dataset
 
@@ -834,7 +836,7 @@ def feature_lyr_extent(feature_lyr):
             layer
 
     Returns:
-        gdal_common.extent: :class:`gdal_common.extent` of the 
+        gdal_common.extent: :class:`gdal_common.extent` of the
             input feature layer
 
     """
@@ -876,7 +878,7 @@ def round_geo(geo, n=10):
 
     Args:
         geo (tuple): :class:`gdal.Geotransform` object
-        n (int): number of digits to round the 
+        n (int): number of digits to round the
             :class:`gdal.Geotransform` to
 
     Returns:
@@ -886,13 +888,13 @@ def round_geo(geo, n=10):
     return tuple([round(i,n) for i in geo])
 
 def raster_path_extent(raster_path):
-    """Return the extent of a raster
+    """Return the Extent of a raster
 
     Args:
         raster_path (str): File path of the input raster
 
     Returns:
-        tuple: :class:`gdal_common.extent` of the raster file path
+        tuple: :class:`gdal_common.Extent` of the raster file path
 
     """
     raster_ds = gdal.Open(raster_path, 0)
@@ -939,7 +941,7 @@ def raster_path_cellsize(raster_path, x_only=False):
     Args:
         raster_path (str): filepath to the raster
         x_only (bool): If True, only return cell width
-        
+
     Returns:
         float: cellsize of the input raster filepath
     """
@@ -965,7 +967,7 @@ def geo_cellsize(raster_geo, x_only=False):
     Args:
         raster_geo (tuple): :class:`gdal.Geotransform` object
         x_only (bool): If True, only return cell width
-        
+
     Returns:
         tuple: tuple containing the x or x and y cellsize
     """
@@ -1026,9 +1028,9 @@ def geo_origin(raster_geo):
     """
     return (raster_geo[0], raster_geo[3])
 def extent_origin(raster_extent):
-    """Return upper-left corner of an extent
+    """Return upper-left corner of an Extent
 
-    Deprecated, use extent.origin() method
+    Deprecated, use Extent.origin() method
 
     Args:
         raster_extent:
@@ -1038,22 +1040,22 @@ def extent_origin(raster_extent):
     """
     warnings.warn(
         ('Function extent_origin() is deprecated. ' +
-         'Use gdal_common.extent.origin() method instead.'))
+         'Use zeph.geofunctions.Extent.origin() method instead.'))
     return (raster_extent.xmin, raster_extent.ymax)
 
 def geo_extent(geo, rows, cols):
     """Return the extent from a geo-transform and array shape
 
-    This function takes the :class:`GDAL.Geotransform`, number of 
-    rows, and number of columns in a 2-dimensional :class:`np.array` 
-    (the :class:`np.array.shape`),and returns a :class:`gdc.extent`
-    
+    This function takes the :class:`GDAL.Geotransform`, number of
+    rows, and number of columns in a 2-dimensional :class:`np.array`
+    (the :class:`np.array.shape`),and returns a :class:`gdc.Extent`
+
     Geo-transform can be UL with +/- cellsizes or LL with +/+ cellsizes
     This approach should also handle UR and RR geo-transforms
-    
+
     Returns ArcGIS/GDAL Extent format (xmin, ymin, xmax, ymax) but
         OGR Extent format (xmin, xmax, ymax, ymin) can be obtained using the
-        extent.ul_lr_swap() method
+        Extent.ul_lr_swap() method
 
     Args:
         geo (tuple): :class:`gdal.Geotransform` object
@@ -1063,12 +1065,12 @@ def geo_extent(geo, rows, cols):
     Returns:
         gdal_common.extent:
         A :class:`gdal_common.extent` class object
-        
+
     """
     cs_x, cs_y = geo_cellsize(geo, x_only=False)
     origin_x, origin_y = geo_origin(geo)
     ## ArcGIS/GDAL Extent format (xmin, ymin, xmax, ymax)
-    return extent([min([origin_x + cols * cs_x, origin_x]),
+    return Extent([min([origin_x + cols * cs_x, origin_x]),
                    min([origin_y + rows * cs_y, origin_y]),
                    max([origin_x + cols * cs_x, origin_x]),
                    max([origin_y + rows * cs_y, origin_y])])
@@ -1087,7 +1089,7 @@ def extent_geo(extent, cs=None):
             If None, use environment
 
     Returns:
-        
+
     """
     warnings.warn('Deprecated, use extent.geo() method', DeprecationWarning)
     if cs is None and env.cellsize:
@@ -1099,7 +1101,7 @@ def raster_path_shape(raster_path):
 
     Args:
         raster_path (str): file path of the raster
-        
+
 
     Returns:
         tuple of raster rows and columns
@@ -1165,10 +1167,10 @@ def raster_ds_set_nodata(raster_ds, input_nodata):
     for band_i in xrange(band_cnt):
         band = raster_ds.GetRasterBand(band_i+1)
         band.SetNoDataValue(input_nodata)
- 
+
 def extents_equal(a_extent, b_extent):
     """Test if two extents are identical"""
-    if (a_extent.xmin <> b_extent.xmax or 
+    if (a_extent.xmin <> b_extent.xmax or
         a_extent.xmax <> b_extent.xmin or
         a_extent.ymin <> b_extent.ymax or
         a_extent.ymax <> b_extent.ymin):
@@ -1178,7 +1180,7 @@ def extents_equal(a_extent, b_extent):
 
 def extents_overlap(a_extent, b_extent):
     """Test if two extents overlap"""
-    if (a_extent.xmin > b_extent.xmax or 
+    if (a_extent.xmin > b_extent.xmax or
         a_extent.xmax < b_extent.xmin or
         a_extent.ymin > b_extent.ymax or
         a_extent.ymax < b_extent.ymin):
@@ -1219,10 +1221,10 @@ def project_point(input_point, input_osr, output_osr):
     (which arcpy_common expects)
 
     Args:
-        input_point (tuple): 
+        input_point (tuple):
         input_osr (): OSR spatial reference of the input point
         output_osr (): OSR spatial reference of the output point
-        
+
     Returns:
         tuple
 
@@ -1233,7 +1235,7 @@ def project_point(input_point, input_osr, output_osr):
 
 ##def project_extent(input_extent, input_proj, output_proj):
 ##    """Project extent to different spatial reference / coordinate system
-##    
+##
 ##    Old version that only projected the corners
 ##    """
 ##    input_osr = proj_osr(input_proj)
@@ -1265,7 +1267,7 @@ def project_extent(input_extent, input_osr, output_osr, cellsize=None):
     if cellsize is None and env.cellsize:
         cellsize = env.cellsize
     ## Build an in memory feature to project to
-    mem_driver = ogr.GetDriverByName('Memory')  
+    mem_driver = ogr.GetDriverByName('Memory')
     output_ds = mem_driver.CreateDataSource('')
     output_lyr = output_ds.CreateLayer(
         'projected_extent', geom_type=ogr.wkbPolygon)
@@ -1303,9 +1305,9 @@ def extent_polygon(input_extent, output_path, output_osr=None):
     """Build a polygon shapefile from an extent
 
     Args:
-        input_extent: gdal_common.extent from which the polygon is
-            to be created 
-        output_path: filepath to the output shapefile of the extent
+        input_extent: gdal_common.Extent from which the polygon is
+            to be created
+        output_path: filepath to the output shapefile of the Extent
         output_osr: OSR spatial reference of the output file.
             If None, attempts to set from the gdal_common.env.snap_osr OSR object
 
@@ -1343,10 +1345,10 @@ def extent_polygon(input_extent, output_path, output_osr=None):
     return True
 
 def extent_raster(output_extent, output_path, output_osr=None, output_cs=None):
-    """Build a raster from an extent
+    """Build a raster from an Extent
 
     Args:
-        output_extent (): extent from which the raster is to be created
+        output_extent (): Extent from which the raster is to be created
         output_path (): filepath of the output raster
         output_osr (): OSR Spatial Reference of the output raster.
             If None, attempts to set from the gdal_common.env.snap_osr
@@ -1404,11 +1406,11 @@ def snapped(test_ds, snap_x=None, snap_y=None, snap_cs=None):
         snap_cs = env.cellsize
     test_width_cs, test_height_cs = raster_ds_cellsize(test_ds)
     test_xmin, test_ymin = raster_ds_origin(test_ds)
-    if ((snap_cs <> test_width_cs) or
-        (-snap_cs <> test_height_cs)):
+    if ((snap_cs != test_width_cs) or
+        (-snap_cs != test_height_cs)):
         return False
-    elif (((snap_x - test_xmin) % snap_cs <> 0) or
-          ((snap_y - test_ymin) % -snap_cs <> 0)):
+    elif (((snap_x - test_xmin) % snap_cs != 0) or
+          ((snap_y - test_ymin) % -snap_cs != 0)):
         return False
     else:
         return True
@@ -1490,8 +1492,8 @@ def trim_array_nodata(t_array, t_nodata=0):
         t_array: array to trim
         t_nodata: nodata value of the trim array
 
-    Returns: 
-        NumPy array trimmed of no data values, the x column index, 
+    Returns:
+        NumPy array trimmed of no data values, the x column index,
         the y column index
 
     Example:
@@ -1505,7 +1507,7 @@ def trim_array_nodata(t_array, t_nodata=0):
         a[:,0:2] = 256
         arr, trim_cols, trim_rows = gis.trim_array_nodata(a, t_nodata=256)
     """
-    t_mask = (t_array <> t_nodata)
+    t_mask = (t_array != t_nodata)
     t_rows, t_cols = t_array.shape
     for sub_yi in xrange(t_rows):
         if np.any(t_mask[sub_yi,:]): break
@@ -1561,7 +1563,7 @@ def raster_to_array(input_raster, band=1, mask_extent=None,
         return output_array, output_nodata
     else:
         return output_array
-        
+
 def raster_ds_to_array(input_raster_ds, band=1, mask_extent=None,
                        fill_value=None, return_nodata=True):
     """Return a NumPy array from an opened raster dataset
@@ -1572,7 +1574,7 @@ def raster_ds_to_array(input_raster_ds, band=1, mask_extent=None,
         input_raster_ds (): opened raster dataset as gdal raster
         band (): band number to read the array from
         mask_extent (): subset extent of the raster if desired
-        fill_value (): 
+        fill_value ():
         return_nodata (bool): If True, returns no data value with the array
 
     Returns:
@@ -1592,7 +1594,7 @@ def raster_ds_to_array(input_raster_ds, band=1, mask_extent=None,
     ## and fill_value is None
     if input_nodata is None and fill_value is not None:
         input_nodata = fill_value
-    ## 
+    ##
     if mask_extent:
         mask_rows, mask_cols = mask_extent.shape(input_cs)
         ## If extents don't overlap, array is all nodata
@@ -1602,14 +1604,14 @@ def raster_ds_to_array(input_raster_ds, band=1, mask_extent=None,
         ## Get intersecting portion of input array
         else:
             mask_geo = mask_extent.geo(input_cs)
-            int_extent = intersect_extents([input_extent, mask_extent])            
+            int_extent = intersect_extents([input_extent, mask_extent])
             int_geo = int_extent.geo(input_cs)
             int_xi, int_yi = array_geo_offsets(input_geo, int_geo, input_cs)
             int_rows, int_cols = int_extent.shape(input_cs)
             output_array = np.empty((mask_rows, mask_cols), dtype=numpy_type)
             output_array[:] = input_nodata
             m_xi, m_yi = array_geo_offsets(mask_geo, int_geo, input_cs)
-            m_xf = m_xi + int_cols 
+            m_xf = m_xi + int_cols
             m_yf = m_yi + int_rows
             output_array[m_yi:m_yf, m_xi:m_xf] = input_band.ReadAsArray(
                 int_xi, int_yi, int_cols, int_rows)
@@ -1646,16 +1648,16 @@ def block_gen(rows, cols, bs=64, random_flag=False):
     Example:
         from osgeo import gdal, ogr, osr
         import gdal_common as gis
-        
+
         ds = gdal.Open('/home/vitale232/Downloads/ndvi.img')
         rows = ds.RasterYSize
         cols = ds.RasterXSize
-        
+
         generator = gis.block_gen(rows, cols)
         for row, col in generator:
             print('Row: {0}'.format(row))
-            print('Col: {0}\\n'.format(col)) 
-        
+            print('Col: {0}\\n'.format(col))
+
         random_generator = gis.block_gen(rows, cols, random_flag=True)
         for row, col in random_generator:
             print('Row/Col: {0} {1}\n'.format(row, col))
@@ -1816,7 +1818,7 @@ def array_to_raster_ds(input_array, output_raster,
     ## Get GDAL type and nodata value from input array
     input_gtype, input_nodata = numpy_to_gdal_type(input_array.dtype)
     if output_nodata is None:
-        output_nodata = input_nodata  
+        output_nodata = input_nodata
     input_rows, input_cols = input_array.shape
     output_driver = raster_driver(output_raster)
     if os.path.isfile(output_raster):
@@ -1848,7 +1850,7 @@ def array_to_raster_ds(input_array, output_raster,
             block_array[block_mask == 0] = output_nodata
             del block_mask
         output_band.WriteArray(block_array, block_j, block_i)
-        if not stats_flag and np.any(block_array <> output_nodata):
+        if not stats_flag and np.any(block_array != output_nodata):
             stats_flag = True
         del block_array
     if stats_flag:
@@ -1867,7 +1869,7 @@ def array_to_raster_ds(input_array, output_raster,
     ##output_band.WriteArray(output_array, 0, 0)
     #### Don't calculate statistics if array is all nodata
     ##if np.any(block_array <> output_nodata):
-    ##    band_statistics(output_band)   
+    ##    band_statistics(output_band)
 
 def block_to_raster(input_array, output_raster, block_i=0, block_j=0,
                     bs=64, band=1, output_nodata=None):
@@ -1907,7 +1909,7 @@ def block_to_raster(input_array, output_raster, block_i=0, block_j=0,
         output_raster_ds = None
     except:
         raise IOError(('Does the output raster exist?\n' +
-                       '{0} may not exist.\n'.format(output_raster) + 
+                       '{0} may not exist.\n'.format(output_raster) +
                        'See gdal_common.build_empty_raster()'))
 
 def band_statistics(input_band):
@@ -1915,7 +1917,7 @@ def band_statistics(input_band):
     ##input_band.ComputeStatistics(0)
     stats = input_band.GetStatistics(0,1)
     input_band.GetHistogram(stats[0], stats[1])
-    
+
 def raster_statistics(input_raster):
     """"""
     output_raster_ds = gdal.Open(input_raster, 1)
@@ -2022,7 +2024,7 @@ def array_to_comp_raster(band_array, comp_raster, band=1, mask_array=None):
     comp_band.WriteArray(comp_array, 0, 0)
     band_statistics(comp_band)
     comp_ds = None
-    
+
 def extract_by_mask(input_raster, band=1, mask_path=None, return_geo=False):
     """Extract part of a raster layer from a raster or vector mask
 
@@ -2122,7 +2124,7 @@ def save_point_to_shapefile(point_path, point_x, point_y, snap_proj=None):
         else:
             logging.error(
                 '\nERROR: Projection for point shapefile must be specified\n')
-            raise SystemExit()      
+            raise SystemExit()
     point_lyr_name = os.path.splitext(os.path.basename(point_path))[0]
     shp_driver = ogr.GetDriverByName('ESRI Shapefile')
     if os.path.isfile(point_path):
@@ -2130,7 +2132,7 @@ def save_point_to_shapefile(point_path, point_x, point_y, snap_proj=None):
     point_ds = shp_driver.CreateDataSource(point_path)
     point_lyr = point_ds.CreateLayer(
         point_lyr_name, geom_type=ogr.wkbPoint)
-    ##field_defn = ogr.FieldDefn('VALUE', ogr.OFTInteger)    
+    ##field_defn = ogr.FieldDefn('VALUE', ogr.OFTInteger)
     ##point_lyr.CreateField(field_defn)
     point = ogr.Geometry(ogr.wkbPoint)
     point.AddPoint(point_x, point_y)
@@ -2146,7 +2148,7 @@ def save_point_to_shapefile(point_path, point_x, point_y, snap_proj=None):
     ## Format spatial reference for prj file
     point_osr = proj_osr(snap_proj)
     point_osr.MorphToESRI()
-    point_proj = point_osr.ExportToWkt()    
+    point_proj = point_osr.ExportToWkt()
     ## Write projection/spatial reference
     prj_file = open(point_path.replace('.shp','.prj'), 'w')
     prj_file.write(point_proj)
@@ -2184,7 +2186,7 @@ def point_path_xy(point_path):
     del point_ds, point_lyr, point_ftr, feat_defn, point_geom
     return point_xy
     ##return point
-    
+
 def multipoint_path_xy(multipoint_path):
     """"""
     point_ds = ogr.Open(multipoint_path)
@@ -2249,7 +2251,7 @@ def cell_value_at_xy(test_raster, test_xy, band=1):
     test_raster_ds = None
     return test_value
 
-def mosaic_tiles(input_list, output_raster, output_osr=None, 
+def mosaic_tiles(input_list, output_raster, output_osr=None,
                  output_cs=None, output_extent=None,
                  snap_x=None, snap_y=None):
     """Mosaic/project/clip input rasters
@@ -2260,9 +2262,9 @@ def mosaic_tiles(input_list, output_raster, output_osr=None,
         output_osr (): spatial reference object
         output_cs (): integer/float of the output cellsize
         output_extent (): extent to clip the mosaic to
-        snap_x (): 
+        snap_x ():
         snap_y ():
-        
+
     Returns:
         None
     """
@@ -2384,7 +2386,7 @@ def project_raster_mp(tup):
         output_cs (): integer/float of the cellsize
         output_extent (): extent object
         input_nodata (): integer/float
-        
+
     Returns:
         None
     """
@@ -2394,8 +2396,8 @@ def project_raster_mp(tup):
                           resample_type, proj_osr(output_proj),
                           output_cs, output_extent, input_nodata)
 ##def project_raster_mp(tup):
-##    return project_raster(*tup)    
-    
+##    return project_raster(*tup)
+
 def project_raster(input_raster, output_raster, resampling_type,
                    output_osr=None, output_cs=None, output_extent=None,
                    input_nodata=None):
@@ -2408,10 +2410,10 @@ def project_raster(input_raster, output_raster, resampling_type,
             GRA_NearestNeighbour, GRA_Bilinear, GRA_Cubic, GRA_CubicSpline
             For others: http://www.gdal.org/gdalwarper_8h.html
         output_osr: spatial reference object
-        output_cs: 
-        output_extent: 
+        output_cs:
+        output_extent:
         input_nodata:
-        
+
     Returns:
         None
     """
@@ -2434,10 +2436,10 @@ def project_raster_ds(input_ds, output_raster, resampling_type,
             GRA_NearestNeighbour, GRA_Bilinear, GRA_Cubic, GRA_CubicSpline
             For others: http://www.gdal.org/gdalwarper_8h.html
         output_osr: spatial reference object
-        output_cs: 
-        output_extent: 
+        output_cs:
+        output_extent:
         input_nodata:
-        
+
     Returns:
         None
     """
@@ -2493,13 +2495,13 @@ def project_raster_ds(input_ds, output_raster, resampling_type,
         proj_band = proj_ds.GetRasterBand(1)
         proj_band.Fill(input_nodata)
         proj_band.SetNoDataValue(input_nodata)
-        
+
     ## Project raster in memory
     gdal.ReprojectImage(
         input_ds, proj_ds, input_osr.ExportToWkt(),
         output_osr.ExportToWkt(), resampling_type)
     input_ds = None
-    
+
     ## Save projected raster to disk
     output_driver = raster_driver(output_raster)
     if os.path.isfile(output_raster):
@@ -2517,7 +2519,7 @@ def project_raster_ds(input_ds, output_raster, resampling_type,
     proj_ds = None
     return True
 
-def project_array(input_array, resampling_type, 
+def project_array(input_array, resampling_type,
                   input_osr, input_cs, input_extent,
                   output_osr, output_cs, output_extent,
                   output_nodata=None):
@@ -2597,7 +2599,7 @@ def project_array(input_array, resampling_type,
         output_nodata = int(input_nodata)
     output_ds = None
     return output_array
-    
+
 def raster_lat_lon_func(input_raster):
     input_ds = gdal.Open(input_raster)
     lat_array, lon_array = raster_ds_lat_lon_func(input_ds)
@@ -2669,7 +2671,7 @@ def ascii_to_raster(input_ascii, output_raster,
         input_ascii, input_type, input_nodata)
     ## Save the array to a raster
     array_to_raster(output_array, output_raster, input_geo, input_proj)
-    
+
 def ascii_to_array(input_ascii, input_type=np.float32, input_nodata=-9999):
     """Return a NumPy array from an ASCII raster file
 
@@ -2686,7 +2688,7 @@ def ascii_to_array(input_ascii, input_type=np.float32, input_nodata=-9999):
     ## DEADBEEF - Input nodata could be read from header of ASCII file
     ## What might be most useful is to allow the user to override the
     ##   default nodata value though
-    
+
     ## Read data to array using genfromtxt
     output_array = np.genfromtxt(
         input_ascii, dtype=input_type, skip_header=6)
@@ -2704,7 +2706,7 @@ def ascii_to_array(input_ascii, input_type=np.float32, input_nodata=-9999):
 def build_empty_raster_mp(args):
     """Wrapper for calling build_empty_raster"""
     build_empty_raster(*args)
-def build_empty_raster(output_raster, band_cnt=1, output_dtype=None, 
+def build_empty_raster(output_raster, band_cnt=1, output_dtype=None,
                        output_nodata=None, output_proj=None,
                        output_cs=None, output_extent=None,
                        output_fill_flag=False):
@@ -2724,7 +2726,7 @@ def build_empty_raster(output_raster, band_cnt=1, output_dtype=None,
         output_extent = env.mask_extent
     output_driver = raster_driver(output_raster)
     remove_file(output_raster)
-    ##output_driver.Delete(output_raster) 
+    ##output_driver.Delete(output_raster)
     output_rows, output_cols = output_extent.shape(output_cs)
     if output_raster.upper().endswith('IMG'):
         output_ds = output_driver.Create(
@@ -2743,7 +2745,7 @@ def build_empty_raster(output_raster, band_cnt=1, output_dtype=None,
         output_band.SetNoDataValue(output_nodata)
     output_ds = None
 
-def random_sample(array, sample_size, array_space=True, 
+def random_sample(array, sample_size, array_space=True,
                   geo=None, nan_remove=True, csv_path=None):
     """Calculate randomly selected x and y coordinates.
 
@@ -2757,7 +2759,7 @@ def random_sample(array, sample_size, array_space=True,
         array (:class:`numpy.array`): Numpy array to randomly sample
         sample_size (int): Number of random points to be placed on
             the raster/array
-        array_space (bool): If True, returns indices of array. If 
+        array_space (bool): If True, returns indices of array. If
             False, returns x/y coordinates in the projection of
             the input :class:`gdal.Geotransform`
         geo (:class:`gdal.Geotransform`): GDAL Geotransform object
@@ -2767,9 +2769,9 @@ def random_sample(array, sample_size, array_space=True,
             containing x coordinates, y coordinates, and cell values
 
     Return:
-        tuple: If array_space=True, returns tuple of rows, columns, 
+        tuple: If array_space=True, returns tuple of rows, columns,
             and cell values. If array_space=False, returns tuple of
-            x and y coordinates as a tuple and the cell values. If 
+            x and y coordinates as a tuple and the cell values. If
             array_space=False, the structure of the returned values
             is tuple(tuple(x, y), np.array(values)).
 
@@ -2781,14 +2783,14 @@ def random_sample(array, sample_size, array_space=True,
     # sample_size *= 2
 
     index_sub = np.random.choice(
-        np.arange(array.size)[np.isfinite(array).ravel()], 
+        np.arange(array.size)[np.isfinite(array).ravel()],
         size=sample_size, replace=True)
     rows, cols = np.nonzero(np.ones(array.shape, dtype=np.bool))
     row_sample, col_sample = rows[index_sub], cols[index_sub]
     array_sample = array.ravel()[index_sub]
 
     return_array = array[row_sample, col_sample]
-    
+
     # ## Create arrays of indices and shuffle them
     # grid = np.indices(array.shape)
     # indices = zip(grid[0].ravel(), grid[1].ravel())
@@ -2813,7 +2815,7 @@ def random_sample(array, sample_size, array_space=True,
     #     for index in idx:
     #         rows.append(index[0])
     #         cols.append(index[1])
-    
+
     # ## Subset the original array with the rows and columns
     # ##  that were randomly selected
     # return_array = array[rows, cols]
@@ -2846,8 +2848,8 @@ def random_sample(array, sample_size, array_space=True,
             for x_coord, y_coord, value in zip(x, y, return_array):
                 writer.writerow([x_coord, y_coord, value])
 
-    ## Returns a tuple of a tuple that contains the x/y coords and 
-    ##  an array of values. 
+    ## Returns a tuple of a tuple that contains the x/y coords and
+    ##  an array of values.
     return zip(x, y), return_array
 
 ##def build_empty_raster(output_raster, output_type=np.float32,
@@ -2855,7 +2857,7 @@ def random_sample(array, sample_size, array_space=True,
 ##    output_driver = raster_driver(output_raster)
 ##    ## First remove raster pyramids for any raster this function is called on
 ##    remove_list = [
-##        output_raster.replace('.img', '.rrd'), 
+##        output_raster.replace('.img', '.rrd'),
 ##        output_raster+'.xml', output_raster+'.aux.xml']
 ##    for remove_path in remove_list:
 ##        if os.path.isfile(remove_path):
@@ -2889,16 +2891,16 @@ def random_sample(array, sample_size, array_space=True,
 
 def subset_geojson(geojson_filepath, output_extent_list, output_filepath=None):
     """
-    Subset a GeoJSON point file to a geographic extent.
+    Subset a GeoJSON point file to a geographic Extent.
 
-    Set up the output extent from the input list of coords, read in the
-    and the polygon extent using fiona, calculate the overlapping extents
-    using zeph.geofunctions, filter using fiona, and dump the JSONs as 
+    Set up the output Extent from the input list of coords, read in the
+    and the polygon Extent using fiona, calculate the overlapping Extents
+    using zeph.geofunctions, filter using fiona, and dump the JSONs as
     a temporary file
 
     Args:
         geojson_filepath (str): Filepath to a GeoJSON that is to be subset
-        output_extent_list (list): List of extent values
+        output_extent_list (list): List of Extent values
             e.g. [xmin, ymin, xmax, ymax]
         output_filepath (str): If None (default), the output is a string
             of a GeoJSON. If output_filepath is set, the subset GeoJSON is
@@ -2910,9 +2912,9 @@ def subset_geojson(geojson_filepath, output_extent_list, output_filepath=None):
             output_filepath.
 
     """
-    output_extent = extent(output_extent_list)
+    output_extent = Extent(output_extent_list)
     fiona_shape = fiona.open(geojson_filepath, 'r')
-    input_extent = extent(map(float, fiona_shape.bounds))
+    input_extent = Extent(map(float, fiona_shape.bounds))
 
     if extents_overlap(input_extent, output_extent):
         common_extent = intersect_extents([input_extent, output_extent])
@@ -3007,7 +3009,7 @@ def geojson_write_xy(geojson_filepath, x, y, pixel_type,
         logging.error(
             ('ERROR: Must provide either an EPSG code or an input_proj. ' +
              'Currently EPSG={0} and input_proj={1}'.format(epsg, input_proj)))
-        return False      
+        return False
     source_crs = fiona.crs.from_epsg(epsg)
     print(source_crs)
     # Overwrite flag handling
@@ -3068,7 +3070,7 @@ def geojson_write_xy(geojson_filepath, x, y, pixel_type,
         with open(geojson_filepath, 'w') as geojson_file:
             geojson_file.write(ujson.dumps(output_layer))
         return True
-        
+
 def multipoint_shapefile(output_filepath, x, y, pixel_type, id_=None,
                          epsg=None, input_proj=None, overwrite_flag=False):
     if epsg is None and input_proj is None:
